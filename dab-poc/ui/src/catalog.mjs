@@ -2,37 +2,38 @@ function nextPage(link, resource) {
   const url = new URL(link, 'https://dab.invalid');
   if (typeof link !== 'string' || !link.startsWith('/') ||
       url.origin !== 'https://dab.invalid' || url.pathname !== resource) {
-    throw new Error('The API returned an unsafe pagination link. Catalog loading stopped.');
+    throw new Error('The API returned an unsafe pagination link. Data loading stopped.');
   }
   return url.pathname + url.search;
 }
 
-async function readAll(resource, parameters, signal) {
+export async function readPage(url, signal) {
+  const response = await fetch(url, {
+    signal,
+    credentials: 'same-origin',
+    headers: { Accept: 'application/json' },
+  });
+  if (response.status === 401 || response.status === 403) {
+    throw new Error('Your sign-in has expired or access was denied. Sign in again, then retry.');
+  }
+  if (!response.ok) throw new Error(`The API request failed (HTTP ${response.status}). Please retry.`);
+  const page = await response.json().catch(() => {
+    throw new Error('The API did not return JSON. Check your sign-in, then retry.');
+  });
+  if (!Array.isArray(page?.value)) throw new Error('The API returned an unexpected data response.');
+  return page;
+}
+
+export async function readAll(resource, parameters, signal) {
   let url = resource + '?' + new URLSearchParams(parameters);
   const visited = new Set();
   const rows = [];
   while (url) {
     if (visited.has(url)) {
-      throw new Error('The API repeated a pagination link. Catalog loading stopped.');
+      throw new Error('The API repeated a pagination link. Data loading stopped.');
     }
     visited.add(url);
-    const response = await fetch(url, {
-      signal,
-      credentials: 'same-origin',
-      headers: { Accept: 'application/json' },
-    });
-    if (response.status === 401 || response.status === 403) {
-      throw new Error('Your sign-in has expired or access was denied. Sign in again, then retry.');
-    }
-    if (!response.ok) {
-      throw new Error(`The catalog request failed (HTTP ${response.status}). Please retry.`);
-    }
-    const page = await response.json().catch(() => {
-      throw new Error('The API did not return JSON. Check your sign-in, then retry.');
-    });
-    if (!Array.isArray(page?.value)) {
-      throw new Error('The API returned an unexpected catalog response.');
-    }
+    const page = await readPage(url, signal);
     rows.push(...page.value);
     url = page.nextLink == null ? null : nextPage(page.nextLink, resource);
   }

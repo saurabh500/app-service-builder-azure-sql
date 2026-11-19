@@ -2,7 +2,10 @@
   "$schema": "https://github.com/Azure/data-api-builder/releases/download/v2.1.5/dab.draft.schema.json",
   "data-source": {
     "database-type": "mssql",
-    "connection-string": "@env('SQL_CONNECTION_STRING')"
+    "connection-string": "@env('SQL_CONNECTION_STRING')",
+    "options": {
+      "set-session-context": true
+    }
   },
   "runtime": {
     "rest": {
@@ -25,7 +28,7 @@
       "mode": "production",
       "max-response-size-mb": 1,
       "authentication": {
-        "provider": "Unauthenticated"
+        "provider": "AppService"
       },
       "cors": {
         "origins": [],
@@ -37,8 +40,8 @@
     },
     "telemetry": {
       "application-insights": {
-        "connection-string": "",
-        "enabled": false
+        "connection-string": "@env('APPLICATIONINSIGHTS_CONNECTION_STRING')",
+        "enabled": true
       },
       "open-telemetry": {
         "endpoint": "",
@@ -61,10 +64,52 @@
       },
       "permissions": [
         {
-          "role": "anonymous",
+          "role": "authenticated",
           "actions": ["read"]
         }
       ]
+    },
+    "CallerAccess": {
+      "source": { "object": "inventory.caller_access", "type": "view", "key-fields": ["id"] },
+      "rest": { "enabled": true, "path": "/access" },
+      "graphql": { "enabled": false },
+      "permissions": [{ "role": "authenticated", "actions": ["read"] }]
+    },
+    "Warehouse": {
+      "source": { "object": "inventory.warehouse_access", "type": "view", "key-fields": ["id"] },
+      "rest": { "enabled": true, "path": "/warehouses" },
+      "graphql": { "enabled": false },
+      "permissions": [{ "role": "authenticated", "actions": ["read"] }]
+    },
+    "Availability": {
+      "source": { "object": "inventory.availability", "type": "view", "key-fields": ["warehouse_id", "product_id"] },
+      "rest": { "enabled": true, "path": "/availability" },
+      "graphql": { "enabled": false },
+      "permissions": [{ "role": "authenticated", "actions": ["read"] }]
+    },
+    "Reservation": {
+      "source": { "object": "inventory.reservation_details", "type": "view", "key-fields": ["id"] },
+      "rest": { "enabled": true, "path": "/reservations" },
+      "graphql": { "enabled": false },
+      "permissions": [{ "role": "authenticated", "actions": ["read"] }]
+    },
+    "Movement": {
+      "source": { "object": "inventory.movement_history", "type": "view", "key-fields": ["id"] },
+      "rest": { "enabled": true, "path": "/movements" },
+      "graphql": { "enabled": false },
+      "permissions": [{ "role": "authenticated", "actions": ["read"] }]
+    },
+    "CommandReceipt": {
+      "source": { "object": "inventory.command_receipts", "type": "view", "key-fields": ["request_id"] },
+      "rest": { "enabled": true, "path": "/receipts" },
+      "graphql": { "enabled": false },
+      "permissions": [{ "role": "authenticated", "actions": ["read"] }]
+    },
+    "InventoryCommand": {
+      "source": { "object": "inventory.execute_command", "type": "stored-procedure" },
+      "rest": { "enabled": true, "path": "/commands", "methods": ["post"] },
+      "graphql": { "enabled": false },
+      "permissions": [{ "role": "authenticated", "actions": ["execute"] }]
     },
     "Category": {
       "source": {
@@ -80,7 +125,7 @@
       },
       "permissions": [
         {
-          "role": "anonymous",
+          "role": "authenticated",
           "actions": ["read"]
         }
       ]

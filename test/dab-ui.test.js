@@ -47,7 +47,7 @@ test('DAB UI reports expired sign-in and HTTP failures instead of showing an emp
 test('DAB UI rejects invalid JSON, wrong response shapes and repeated pagination links', async t => {
   const cases = [
     { response: { ok: true, status: 200, json: async () => { throw new SyntaxError('HTML'); } }, message: /did not return JSON/ },
-    { response: ok({ products: [] }), message: /unexpected catalog response/ },
+    { response: ok({ products: [] }), message: /unexpected data response/ },
     { response: ok({ value: [], nextLink: '/api/products?$after=same' }), message: /repeated a pagination link/ },
   ];
   for (const { response, message } of cases) {

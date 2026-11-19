@@ -13,5 +13,5 @@ components:
     platformVersion: "10"
     build: dotnet msbuild DabBackend.csproj -target:PackageDab -property:DabOutput="$DESTINATION_DIR"
     run:
-      start: ./dab start --config dab-config.json --no-https-redirect
+      start: sh ./start-dab.sh
       port: 8080

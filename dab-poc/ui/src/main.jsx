@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { loadCatalog, selectProducts } from './catalog.mjs';
+import Inventory from './Inventory.jsx';
 import './styles.css';
 
 const PAGE_SIZE = 12;
@@ -39,7 +40,7 @@ function ProductDialog({ product, category, onClose }) {
       </p>
       <p className="detail-description">{product.description || 'No description available.'}</p>
       <dl className="detail-facts">
-        <div><dt>Availability</dt><dd>{product.stock_qty > 0 ? `${product.stock_qty} in stock` : 'Out of stock'}</dd></div>
+        <div><dt>Catalog sample stock</dt><dd>{product.stock_qty > 0 ? `${product.stock_qty} in stock` : 'Out of stock'}</dd></div>
         <div><dt>Rating</dt><dd>{Number(product.rating_avg).toFixed(1)} / 5 ({product.review_count} ratings)</dd></div>
         <div><dt>SKU</dt><dd>{product.sku || 'Not listed'}</dd></div>
         <div><dt>Product ID</dt><dd>{product.id}</dd></div>
@@ -77,21 +78,21 @@ function App() {
   const chooseCategory = value => { setCategory(value); setVisible(PAGE_SIZE); };
 
   return <>
-    <a className="skip-link" href="#catalog">Skip to catalog</a>
+    <a className="skip-link" href="#inventory">Skip to inventory</a>
     <header className="site-header">
       <a className="brand" href="/" aria-label="ShopStream home"><span className="brand-mark"><Bag /></span>
         <span>ShopStream<span className="brand-subtitle">THE DAB EDITION</span></span></a>
-      <nav aria-label="Main navigation"><a className="nav-active" href="#catalog">Explore catalog</a>
+      <nav aria-label="Main navigation"><a className="nav-active" href="#inventory">Inventory</a><a href="#catalog">Explore catalog</a>
         <a href="/api/products?$first=2" target="_blank" rel="noreferrer">View API <span aria-hidden="true">&#8599;</span></a></nav>
-      <span className="read-only-pill"><span />Read-only demo</span>
+      <span className="read-only-pill"><span />Warehouse-secured demo</span>
     </header>
 
     <main>
       <section className="hero" aria-labelledby="hero-title">
         <div className="hero-copy"><p className="eyebrow">A FAMILIAR STORE. A DIFFERENT ENGINE.</p>
-          <h1 id="hero-title">Good finds.<br /><span>Real data.</span></h1>
-          <p>Explore the live ShopStream catalog, powered by Data API builder and Azure SQL Serverless. No custom API server in between.</p>
-          <a className="primary-button" href="#catalog">Explore the collection <span aria-hidden="true">&#8595;</span></a>
+          <h1 id="hero-title">Every unit.<br /><span>Accounted for.</span></h1>
+          <p>Receive, reserve and reconcile stock in your assigned warehouses, powered by Data API builder and Azure SQL Serverless.</p>
+          <a className="primary-button" href="#inventory">Open inventory <span aria-hidden="true">&#8595;</span></a>
           <div className="stack-tags"><span>React</span><span>Data API builder</span><span>Azure SQL</span></div>
         </div>
         <div className="hero-proof">
@@ -99,10 +100,11 @@ function App() {
           <div className="proof-numbers"><div><strong>{data ? products.length.toLocaleString() : '--'}</strong><span>products to discover</span></div>
             <div><strong>{data ? categories.length : '--'}</strong><span>curated categories</span></div></div>
           <div className="architecture"><span>Your browser</span><span aria-hidden="true">&#8594;</span><strong>DAB REST API</strong><span aria-hidden="true">&#8594;</span><span>Azure SQL</span></div>
-          <p>One Builder app. Same-origin UI and API.<br />Microsoft Entra sign-in. SELECT-only database access.</p>
+          <p>One Builder app. Same-origin UI and API.<br />Microsoft Entra sign-in. SQL-enforced warehouse access.</p>
         </div>
       </section>
 
+      <Inventory />
       <section className="catalog-section" id="catalog" aria-labelledby="catalog-title">
         <div className="section-heading"><div><p className="eyebrow">THE COLLECTION</p><h2 id="catalog-title">Find your next favorite</h2></div>
           <button className="text-button" disabled={!data && !error} onClick={() => { setSelected(null); setRefresh(value => value + 1); }}>Refresh catalog <span aria-hidden="true">&#8635;</span></button></div>
@@ -153,7 +155,7 @@ function App() {
           </div>}
       </section>
     </main>
-    <footer><span><strong>ShopStream</strong> / The DAB edition</span><span>Fictional demo data. Read-only by design.</span>
+    <footer><span><strong>ShopStream</strong> / The DAB edition</span><span>Fictional inventory. Catalog remains read-only.</span>
       <a href="https://learn.microsoft.com/azure/data-api-builder/" target="_blank" rel="noreferrer">About Data API builder &#8599;</a></footer>
     {selected && <ProductDialog key={selected.id} product={selected} category={categoryMap.get(selected.category_id)} onClose={() => setSelected(null)} />}
   </>;
