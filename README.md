@@ -101,21 +101,28 @@ bootstrap, reset or seed the database.
 
 ## 3. Grant the runtime identity only sample permissions
 
-Enable the web app's system-assigned managed identity, then obtain its **object/
-principal ID**, not its client/application ID. For local development, use a
+Enable the web app's system-assigned managed identity, then obtain its **client/
+application ID**. For this `CREATE USER WITH SID` form, SQL maps applications and
+managed identities by client ID, not object/principal ID. For local development, use a
 separate non-administrator Entra user and its object ID. While still connected
 as the administrator:
 
 ```powershell
 $env:RUNTIME_ROLE = 'shopstream_runtime'
-$env:RUNTIME_OBJECT_ID = '<app-managed-identity-object-id>'
-$env:RUNTIME_OBJECT_TYPE = 'service' # user for a developer, group for a group
+$env:RUNTIME_CLIENT_ID = '<app-managed-identity-client-id>'
+$env:RUNTIME_OBJECT_TYPE = 'service'
 node --env-file=.env db\setup.js grant
-Remove-Item Env:\RUNTIME_ROLE, Env:\RUNTIME_OBJECT_ID, Env:\RUNTIME_OBJECT_TYPE
+Remove-Item Env:\RUNTIME_ROLE, Env:\RUNTIME_CLIENT_ID, Env:\RUNTIME_OBJECT_TYPE
 ```
 
+For a developer user or group, set `RUNTIME_OBJECT_TYPE=user` or `group` and
+`RUNTIME_OBJECT_ID=<user-or-group-object-id>` instead of `RUNTIME_CLIENT_ID`.
+This distinction applies to raw SQL SID provisioning, not Azure RBAC grants,
+which still identify the managed identity by its object/principal ID.
+
 The setup uses `CREATE USER ... WITH SID ..., TYPE = E/X` to map the exact Entra
-object ID without a directory-name lookup. Re-running grants checks the existing
+client ID (applications/managed identities) or object ID (users/groups) without
+a directory-name lookup. Re-running grants checks the existing
 SID/type instead of replacing it. The script refuses role membership or schema
 ownership on the runtime user. Use a fresh dedicated database/principal: the
 script does not remove other administrators' historical grants or group access.
@@ -125,7 +132,7 @@ Granted operations: SELECT on sample tables; INSERT on orders, order items,
 reviews and inventory events; selected stock/rating/order-status UPDATE columns;
 DELETE on reviews only. No schema creation, database ownership, bootstrap-marker
 access or reset permissions are granted. Azure RBAC does not grant SQL data
-access. Repeat with a different role name and object ID for a limited developer.
+access. Repeat with a different role name and the user's object ID for a limited developer.
 
 ## 4. Run locally
 

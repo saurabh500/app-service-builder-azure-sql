@@ -14,8 +14,9 @@ For a **new** Builder App only:
 az deployment group create --resource-group <app-group> --template-file infra\app.bicep --parameters appName=<unique-app-name>
 ```
 
-Wait for its system-assigned identity to be committed; obtain the app's principal
-ID and use it in the administrator grant step. The app identity must not be a
+Wait for its system-assigned identity to be committed; resolve its principal ID
+to the **client/application ID** and use that as `RUNTIME_CLIENT_ID` in the
+administrator grant step. The app identity must not be a
 SQL administrator. Configure GitHub source or use an explicitly prepared source
 archive through Builder's supported deployment flow. Do not point Builder at
 the PostgreSQL upstream or include private `.env` files.

@@ -49,13 +49,13 @@ async function bootstrap(connection, reset = false, env = process.env) {
   console.log(installed ? 'Installed schema and bounded seed version 1' : 'Schema and seed version 1 already installed; no data changed');
 }
 
-function hasRuntimeMapping(rows, role, oid, type) {
+function hasRuntimeMapping(rows, role, identityId, type) {
   if (!Array.isArray(rows) || rows.length > 1) throw new Error('Unsupported Entra principal metadata');
   if (!rows.length) return false;
   const mapped = rows[0];
   if (!mapped || typeof mapped !== 'object') throw new Error('Unsupported Entra principal metadata');
-  if (mapped.name !== role || typeof mapped.object_id !== 'string'
-      || mapped.object_id.toLowerCase() !== oid.toLowerCase()
+  if (mapped.name !== role || typeof mapped.sid_id !== 'string'
+      || mapped.sid_id.toLowerCase() !== identityId.toLowerCase()
       || mapped.type !== (type === 'group' ? 'X' : 'E')
       || mapped.authentication_type_desc !== 'EXTERNAL') {
     throw new Error('Existing Entra mapping differs; refusing to replace it');
@@ -64,20 +64,23 @@ function hasRuntimeMapping(rows, role, oid, type) {
 }
 
 async function grant(connection, env = process.env) {
-  const { RUNTIME_ROLE: role, RUNTIME_OBJECT_ID: oid, RUNTIME_OBJECT_TYPE: type = 'service' } = env;
+  const { RUNTIME_ROLE: role, RUNTIME_OBJECT_TYPE: type = 'service' } = env;
+  const idKey = type === 'service' ? 'RUNTIME_CLIENT_ID' : 'RUNTIME_OBJECT_ID';
+  const identityId = env[idKey];
   if (!role || role.length > 128 || !/^[a-z][a-z0-9_]*$/.test(role) || role === 'dbo' || role === 'guest' || role === 'public') {
     throw new Error('RUNTIME_ROLE must be a separate lowercase database user (at most 128 characters)');
   }
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(oid || '')
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identityId || '')
       || !['user', 'service', 'group'].includes(type)) {
-    throw new Error('RUNTIME_OBJECT_ID and RUNTIME_OBJECT_TYPE must identify the intended Entra principal');
+    throw new Error(`${idKey} and RUNTIME_OBJECT_TYPE must identify the intended Entra principal`);
   }
   await runTransaction(connection, async (client) => {
     const existing = await client.query(`SELECT name, type, authentication_type_desc,
-      CONVERT(varchar(36), CONVERT(uniqueidentifier, sid)) AS object_id
+      CONVERT(varchar(36), CONVERT(uniqueidentifier, sid)) AS sid_id
       FROM sys.database_principals WHERE name = @p1`, [role]);
-    if (!hasRuntimeMapping(existing.recordset, role, oid, type)) {
-      const sid = await client.query('SELECT CONVERT(varchar(34), CONVERT(binary(16), CONVERT(uniqueidentifier, @p1)), 1) AS sid', [oid]);
+    if (!hasRuntimeMapping(existing.recordset, role, identityId, type)) {
+      // SQL SID uses the client ID for applications/managed identities, object ID for users/groups.
+      const sid = await client.query('SELECT CONVERT(varchar(34), CONVERT(binary(16), CONVERT(uniqueidentifier, @p1)), 1) AS sid', [identityId]);
       if (!/^0x[0-9a-f]{32}$/i.test(sid.recordset[0].sid)) throw new Error('Invalid Entra SID conversion');
       await client.query(`CREATE USER ${identifier(role)} WITH SID = ${sid.recordset[0].sid}, TYPE = ${type === 'group' ? 'X' : 'E'}`);
     }
