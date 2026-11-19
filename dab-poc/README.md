@@ -98,3 +98,54 @@ For hosted verification, check the exact deployed revision, sign in through
 Builder, read both entities, verify filtering/pagination and check that write
 requests and disabled endpoints fail. A healthy `/` alone does not establish
 database connectivity or authorization.
+
+## Verified hosted deployment
+
+Observed on **2026-11-19 UTC**:
+
+| Item | Value |
+| --- | --- |
+| App | `shopstream-dab-saurabh` |
+| URL | <https://shopstream-dab-saurabh-8f107ed1.app.westus2.builderapps.dev> |
+| Code revision | `1175037fbe4817b8b301afeaef47735f1814f8f5` |
+| Active version | `ver_20261119_841be4373e5c` |
+| Existing database | `shopstream` on `shopstream-saurabh-azsql-1118.database.windows.net` |
+| SQL reader | `shopstream_dab_reader` |
+| Identity client ID | `a17b5540-e7a0-4e72-b477-f339c60209d2` |
+| Identity object ID | `13dd70dd-a44f-4b78-aebe-f037829e94ad` |
+
+This added only a separate Builder app with its system-assigned identity and a
+contained SQL reader; no SQL server, database, tables or seed data were created
+for this proof. The reader has SELECT on the two catalog tables, no catalog
+writes and no CREATE TABLE permission. The temporary local SQL firewall rule
+was removed; only the previously approved `AllowAzureServices` rule remains.
+That rule permits broad Azure-services network access, not just this app.
+
+The final hosted checks exercised:
+
+- Required Entra ingress authentication: anonymous catalog requests returned
+  401; browser reads after the user's consent returned 200. The applied policy
+  allows the configured tenant, not just the app owner. The old internal
+  hostname also denied an unauthenticated catalog request with 403.
+- Real SQL product/category reads, primary-key lookup, filtering, field
+  selection and descending ordering.
+- Two repeated pagination sequences for each entity: IDs 1/2 followed by 3/4,
+  using the returned relative `nextLink` on the same public origin.
+- A 100-row page succeeded; a request for 101 rows returned 400. This limit is
+  per response, not a lifetime cap on how many rows a client may read.
+- POST, PUT, PATCH and DELETE returned 403; product 1 was unchanged afterward.
+  GraphQL, MCP and customer/order/review routes returned 404.
+
+The origin check failed against the earlier running absolute-link deployment
+and passed after enabling relative links. There was no separate mutation of
+Builder's proxy behavior. The final config change also passed all 26 root
+offline tests. The official DAB validator had previously connected to the
+existing SQL database using the local setup identity; those earlier validation
+results are distinct from the final hosted reader/ingress checks above.
+
+The original ShopStream app remained on `ver_20261119_cc3b696c61b2`, and automatic
+deployment is disabled for both apps. The existing frontend and transactional
+order/review API were not migrated to DAB. Observed scale-to-zero, SQL
+auto-pause/resume, sustained load and long-duration identity renewal were not
+tested. Builder remains a preview/dev-test platform; this is not a production
+readiness claim.
