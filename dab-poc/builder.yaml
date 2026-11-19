@@ -3,7 +3,7 @@ components:
     role: web
     platform: dotnet
     platformVersion: "10"
-    build: dotnet tool install --tool-path "$DESTINATION_DIR" Microsoft.DataApiBuilder --version 2.1.5 && cp dab-config.json "$DESTINATION_DIR/"
+    build: dotnet msbuild DabBackend.csproj -target:PackageDab -property:DabOutput="$DESTINATION_DIR"
     run:
       start: ./dab start --config dab-config.json --no-https-redirect
       port: 8080

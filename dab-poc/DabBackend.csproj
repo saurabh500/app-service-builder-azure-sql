@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+  <!-- Oryx identifies .NET from this project; the target packages the official DAB host. -->
+  <Target Name="PackageDab">
+    <Error Condition="'$(DabOutput)' == ''" Text="DabOutput must name the deployment output directory." />
+    <Exec Command="dotnet tool install --tool-path &quot;$(DabOutput)&quot; Microsoft.DataApiBuilder --version 2.1.5" />
+    <Copy SourceFiles="dab-config.json" DestinationFolder="$(DabOutput)" />
+  </Target>
+</Project>

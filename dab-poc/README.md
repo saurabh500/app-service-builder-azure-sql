@@ -5,9 +5,12 @@ the repository-root Express/React app. It uses Data API builder **2.1.5** on
 **.NET 10** against existing `dbo.products` and `dbo.categories` tables.
 It creates no database, tables, seed data or migrations.
 
-Builder installs the pinned official `Microsoft.DataApiBuilder` .NET tool into
-its deployment output during the build. The runtime starts that tool directly;
-there is no container sidecar or custom HTTP wrapper. Select `dab-poc` as the
+Builder's Oryx detection requires a .NET project even with a custom build.
+`DabBackend.csproj` is the actual MSBuild packaging entry point: its `PackageDab`
+target installs the pinned official `Microsoft.DataApiBuilder` .NET tool into
+the deployment output and copies the config. It does not compile another HTTP
+server. The runtime starts DAB directly; there is no container sidecar or
+custom HTTP wrapper. Select `dab-poc` as the
 Builder app's GitHub source `--root-directory`.
 
 ## Required configuration and security
