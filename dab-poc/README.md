@@ -13,6 +13,25 @@ server. The runtime starts DAB directly; there is no container sidecar or
 custom HTTP wrapper. Select `dab-poc` as the
 Builder app's GitHub source `--root-directory`.
 
+### Comparison with the official .NET sample
+
+The [Builder .NET sample](https://github.com/AzureAppService/app-service-builder-dotnet)
+uses `Microsoft.NET.Sdk.Web`, `TargetFramework=net10.0`, manifest
+`platform: dotnet` / `platformVersion: "10"`, an HTTP listener on port 8080 and
+an explicit health endpoint. This proof follows the same runtime contract.
+The difference is the build output: the sample publishes its own ASP.NET
+application; our custom MSBuild target packages the official DAB .NET tool and
+configuration, and the startup command runs DAB itself.
+
+[Oryx](https://github.com/microsoft/Oryx) is the source-detection/build engine
+used by Builder. It still needs a detectable .NET project before it runs a
+custom build command. The first hosted attempt without that project failed
+at detection, before DAB started. The packaging project supplies the framework
+declaration and owns the real packaging operation; it is not another API server.
+See [Builder's custom-build contract](https://builder.appservice.azure.com/docs/guides/builder-yaml/#override-the-build-correctly).
+Neither comparison nor local manifest validation proves hosted readiness:
+check startup, ingress authentication, actual SQL reads and write denial.
+
 ## Required configuration and security
 
 - Set `ASPNETCORE_URLS=http://0.0.0.0:8080`.
@@ -50,6 +69,13 @@ Filtering, ordering, selection and pagination use DAB query parameters, not the
 Express API's response shapes or `limit`/`page` parameters. This does not migrate
 the existing ShopStream frontend or transactional order/review behavior.
 Write attempts must fail at both DAB authorization and SQL permissions.
+
+Pagination uses DAB's native `next-link-relative` option. Its default absolute
+links used Builder's internal proxy hostname in the first running deployment.
+Relative links keep subsequent requests on the public authenticated origin;
+clients should resolve `nextLink` against the API origin.
+The option is defined in DAB 2.1.5's
+[pagination configuration](https://github.com/Azure/data-api-builder/blob/v2.1.5/src/Config/ObjectModel/PaginationOptions.cs).
 
 ## Local checks
 
