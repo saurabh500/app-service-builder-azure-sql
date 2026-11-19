@@ -1,0 +1,88 @@
+{
+  "$schema": "https://github.com/Azure/data-api-builder/releases/download/v2.1.5/dab.draft.schema.json",
+  "data-source": {
+    "database-type": "mssql",
+    "connection-string": "@env('SQL_CONNECTION_STRING')"
+  },
+  "runtime": {
+    "rest": {
+      "enabled": true,
+      "path": "/api",
+      "request-body-strict": true
+    },
+    "graphql": {
+      "enabled": false
+    },
+    "mcp": {
+      "enabled": false
+    },
+    "pagination": {
+      "default-page-size": 20,
+      "max-page-size": 100
+    },
+    "host": {
+      "mode": "production",
+      "max-response-size-mb": 1,
+      "authentication": {
+        "provider": "Unauthenticated"
+      },
+      "cors": {
+        "origins": [],
+        "allow-credentials": false
+      }
+    },
+    "health": {
+      "enabled": false
+    },
+    "telemetry": {
+      "application-insights": {
+        "connection-string": "",
+        "enabled": false
+      },
+      "open-telemetry": {
+        "endpoint": "",
+        "enabled": false
+      }
+    }
+  },
+  "entities": {
+    "Product": {
+      "source": {
+        "object": "dbo.products",
+        "type": "table"
+      },
+      "rest": {
+        "enabled": true,
+        "path": "/products"
+      },
+      "graphql": {
+        "enabled": false
+      },
+      "permissions": [
+        {
+          "role": "anonymous",
+          "actions": ["read"]
+        }
+      ]
+    },
+    "Category": {
+      "source": {
+        "object": "dbo.categories",
+        "type": "table"
+      },
+      "rest": {
+        "enabled": true,
+        "path": "/categories"
+      },
+      "graphql": {
+        "enabled": false
+      },
+      "permissions": [
+        {
+          "role": "anonymous",
+          "actions": ["read"]
+        }
+      ]
+    }
+  }
+}
