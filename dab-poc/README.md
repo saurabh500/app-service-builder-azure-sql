@@ -110,6 +110,9 @@ node db\inventory\setup.js grant-write
 ```
 
 The separate external SQL user must already exist and match that client ID.
+On a fresh target, omit the `InventoryCommand` entity from the first deployment
+while proving caller identity with read-only views. Restore it after `grant-write`:
+the complete configuration needs procedure metadata visibility and EXECUTE.
 The runner refuses mismatched principals, database roles, schema ownership
 and permissions beyond the exact catalog/view/procedure allowlist. Do not use
 the original `db/setup.js grant` command for this DAB identity: it grants the
@@ -121,6 +124,9 @@ Migration files are ordered, transactional and checksum-protected, with an
 application lock and version ledger. Repeated migration calls do not reseed or
 overwrite balances. Never edit an applied migration; add a new numbered one.
 There is deliberately no runtime reset or membership-management API.
+Inventory foreign keys protect referenced catalog products, so the original
+database reset cannot delete them while inventory references remain. Plan an
+explicit administrator teardown/migration rather than disabling constraints.
 Additional memberships must be provisioned by a SQL administrator with
 parameterized inputs; never accept warehouse roles from a browser.
 
@@ -301,8 +307,10 @@ Validation connects to SQL and requires a `SQL_CONNECTION_STRING` environment
 variable; it is not an offline-only schema check. Do not use
 the hosted managed-identity connection string locally: an assigned Azure app
 identity is not available on a developer machine. For an explicitly authorized
-local live read, use `Authentication=Active Directory Default` with a separate
-SELECT-only Entra developer account and approved temporary network access.
+local validation, use `Authentication=Active Directory Default` with a separate
+Entra developer account having the same narrow catalog/view/procedure permissions
+and approved network access. A catalog-only reader cannot validate the complete
+inventory procedure configuration.
 Never use an administrator account to test runtime write denial.
 
 The opt-in SQL test uses administrator-created, synthetic RLS fixtures, separate
