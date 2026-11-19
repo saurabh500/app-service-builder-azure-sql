@@ -1,10 +1,17 @@
 components:
+  - name: catalog
+    role: static
+    rootDirectory: ui
+    platform: nodejs
+    platformVersion: "24"
+    output: dist
+    path: /
   - name: api
     role: web
+    path: /api
     platform: dotnet
     platformVersion: "10"
     build: dotnet msbuild DabBackend.csproj -target:PackageDab -property:DabOutput="$DESTINATION_DIR"
     run:
       start: ./dab start --config dab-config.json --no-https-redirect
       port: 8080
-      healthCheckPath: /

@@ -36,9 +36,12 @@ Read [the code walkthrough](README.md#how-to-read-the-code) and
 changing SQL. Bootstrap installs version 1 only: editing `db/schema.sql` does
 not upgrade an existing database, and reset only replaces data. There is no
 migration runner. The [DAB proof of concept](dab-poc/README.md) is a separate
-application root; its read-only configuration test runs with `npm test`, while
+application root; its read-only configuration and UI adapter tests run with `npm test`, while
 the official DAB validator also connects to SQL. Keep runtime permissions
 limited; schema upgrades require a separate explicit deployment process.
+Build its separate React frontend with `npm ci --prefix dab-poc\ui` followed by
+`npm run build --prefix dab-poc\ui`. Its same-origin live UI/API checks require
+the DAB Builder app, not the original Express server.
 
 Never commit tokens, passwords, environment files, customer data, or
 resource-specific credentials.

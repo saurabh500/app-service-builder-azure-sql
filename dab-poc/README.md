@@ -1,9 +1,15 @@
-# Read-only DAB backend proof of concept
+# ShopStream: React catalog and read-only DAB backend
 
 This is a separate App Service Builder application root, not a replacement for
 the repository-root Express/React app. It uses Data API builder **2.1.5** on
 **.NET 10** against existing `dbo.products` and `dbo.categories` tables.
 It creates no database, tables, seed data or migrations.
+
+The same Builder app serves a React 18/Vite catalog at `/` and DAB at `/api`.
+The UI provides complete-catalog search, category filters, price/rating sorting,
+product details, incremental display and refresh. It has no checkout, order
+management, review mutations or calls to the original Node.js API. The original
+Node.js deployment is preserved on the `nodejs-azure-sql-serverless` branch.
 
 Builder's Oryx detection requires a .NET project even with a custom build.
 `DabBackend.csproj` is the actual MSBuild packaging entry point: its `PackageDab`
@@ -18,7 +24,10 @@ Builder app's GitHub source `--root-directory`.
 The [Builder .NET sample](https://github.com/AzureAppService/app-service-builder-dotnet)
 uses `Microsoft.NET.Sdk.Web`, `TargetFramework=net10.0`, manifest
 `platform: dotnet` / `platformVersion: "10"`, an HTTP listener on port 8080 and
-an explicit health endpoint. This proof follows the same runtime contract.
+an explicit health endpoint. This proof follows the same .NET runtime contract,
+but uses Builder's default reachability probes: DAB's non-SQL liveness is `/`
+on the compute, while the public compute mount is `/api`. No SQL query is
+added merely to manufacture an API-prefixed health endpoint.
 The difference is the build output: the sample publishes its own ASP.NET
 application; our custom MSBuild target packages the official DAB .NET tool and
 configuration, and the startup command runs DAB itself.
@@ -47,7 +56,9 @@ check startup, ingress authentication, actual SQL reads and write denial.
   per-user authorization. Do not deploy this configuration to a public ingress
   with authentication disabled. CORS is not an authentication mechanism.
 - GraphQL, MCP, write actions and comprehensive SQL health checks are disabled.
-  Builder probes `/`, DAB's basic service-info endpoint, without a database query.
+  Builder's default compute probe uses `/`, DAB's basic service-info endpoint,
+  without a database query. The public `/api` reachability probe can return 404;
+  default reachability accepts 100-499, not just 200. It is not a SQL health check.
   Startup and actual reads still access SQL and can resume Serverless compute.
   Pool minimum zero does not prove that the database will auto-pause.
 
@@ -59,16 +70,30 @@ this proof reuses the already approved networking for the existing database.
 After signing in through Builder:
 
 ```text
-GET /                         Basic service information
+GET /                         React catalog UI
 GET /api/products?$first=2     Product rows in DAB's value array
 GET /api/products/id/1         Product with primary key 1
 GET /api/categories?$first=2   Category rows
 ```
 
 Filtering, ordering, selection and pagination use DAB query parameters, not the
-Express API's response shapes or `limit`/`page` parameters. This does not migrate
-the existing ShopStream frontend or transactional order/review behavior.
+Express API's response shapes or `limit`/`page` parameters. The separate catalog
+adapts the product-browsing experience, not transactional order/review behavior.
 Write attempts must fail at both DAB authorization and SQL permissions.
+
+The UI reads active products in 100-row DAB pages with `$filter`, `$select` and
+`$orderby`, follows every relative `nextLink`, and loads categories separately.
+It then searches and sorts the complete in-memory snapshot; "Show more" reveals
+12 additional cards, not another SQL query. This deliberately fits the small
+fictional demo, not an arbitrarily large storefront. DAB 2.1.5 rejected the
+tested `contains(name,'Running')` filter; client-side search is not presented as
+a supported DAB string-search operator. For a large catalog, add a separately
+reviewed SQL search view/API instead of loading the whole catalog.
+
+The page loader rejects foreign-origin, wrong-resource and repeated next links.
+Failed or expired-sign-in responses show an explicit error and retry/sign-in
+actions, never an empty success or fabricated data. Refresh replaces the
+snapshot; no automatic write or query-retry framework is added.
 
 Pagination uses DAB's native `next-link-relative` option. Its default absolute
 links used Builder's internal proxy hostname in the first running deployment.
@@ -78,6 +103,22 @@ The option is defined in DAB 2.1.5's
 [pagination configuration](https://github.com/Azure/data-api-builder/blob/v2.1.5/src/Config/ObjectModel/PaginationOptions.cs).
 
 ## Local checks
+
+From the repository root:
+
+```powershell
+npm ci --prefix dab-poc\ui
+npm test
+npm run build --prefix dab-poc\ui
+builder manifest validate dab-poc --json
+```
+
+`npm test` includes database-free DAB UI pagination/error/search tests.
+`ui/src/main.jsx` is the React UI, `ui/src/catalog.mjs` adapts DAB responses,
+and `ui/src/styles.css` defines the responsive light/dark theme. The UI build
+needs no database credentials. A plain local Vite server does not supply the
+protected `/api` backend; live same-origin UI/API testing uses the deployed
+Builder app. There is no mock-data fallback.
 
 Install the pinned .NET tool in a disposable local tool directory with .NET 10:
 
@@ -97,9 +138,24 @@ Never use an administrator account to test runtime write denial.
 For hosted verification, check the exact deployed revision, sign in through
 Builder, read both entities, verify filtering/pagination and check that write
 requests and disabled endpoints fail. A healthy `/` alone does not establish
-database connectivity or authorization.
+database connectivity or authorization. With the UI installed, an HTML 200
+at `/` proves only frontend delivery; check `/api/products` separately.
 
-## Verified hosted deployment
+To try local source before pushing, create a ZIP with `builder.yaml` at its
+root, plus `DabBackend.csproj`, `dab-config.json`, the UI source/package/lock
+files and license. Exclude `.env`, Git metadata, `node_modules`, `dist` and
+caches. Use the prepared-manifest CLI workflow:
+
+```powershell
+builder app deploy --name <existing-dab-app> --subscription <subscription> --resource-group <group> --source-archive <source.zip> --manifest dab-poc\builder.yaml --json
+```
+
+This deploys to the existing app and affects its serving version; it is not an
+isolated preview slot. Confirm its GitHub source branch and `autoDeploy` state
+before subsequently pushing. Do not start a duplicate manual deployment while
+a push-triggered deployment is already running.
+
+## Verified backend-only deployment (before the catalog UI)
 
 Observed on **2026-11-19 UTC**:
 
@@ -149,3 +205,46 @@ order/review API were not migrated to DAB. Observed scale-to-zero, SQL
 auto-pause/resume, sustained load and long-duration identity renewal were not
 tested. Builder remains a preview/dev-test platform; this is not a production
 readiness claim.
+
+## Verified UI deployment before Git push
+
+On **2026-11-19 UTC**, the unpublished UI source was packaged explicitly
+(no credentials, Git metadata, dependencies or generated output) and deployed
+to the existing DAB app:
+
+| Item | Value |
+| --- | --- |
+| Serving version | `ver_20261119_83c6c6f2e97a` |
+| Deployment | `dep_20261119_83c6c6f2e97a` |
+| Source kind | `uploadedArtifact`, not a Git commit deployment |
+| Source ZIP SHA-256 | `0d4c0286c63ac1184bae7e97259c2bd8f466a6a91ca52497b2aff0d37d66d7b6` |
+| UI | `/`, static React/Vite output built with Node.js 24 |
+| Backend | `/api`, official DAB on .NET 10 |
+| Configured GitHub branch | `dev/saurabh/azure-sql-serverless-app` |
+
+The local frontend production build, all **31** root offline tests and Builder
+manifest planning passed. The local build used Node.js 26 and emitted the
+expected Node.js 24 engine warning; the successful hosted build targeted
+Node.js 24. CI now also builds this separate UI using Node.js 24.
+
+The authenticated live browser loaded **500 active products and 15 categories**
+using five product pages and one category page. Search for `SKU-000500` found
+the last product, and opening it showed its SKU, stock, price and description.
+Clearing search, category filtering, descending price sort and showing 24
+instead of 12 cards worked. Two complete refreshes each replaced the snapshot
+with the same 500 rows using six API requests, with no accumulation.
+The narrow browser viewport had no horizontal document overflow, and production
+JS/CSS loaded successfully. A full desktop viewport and a browser compatibility
+matrix were not exercised.
+
+Anonymous requests to both `/` and `/api/products` returned 401.
+POST/PUT/PATCH/DELETE remained 403, and product 1 stayed unchanged after those
+denied requests. UI sign-in/error handling also has offline fake-response tests;
+these do not prove actual long-duration identity renewal or SQL auto-resume.
+No database grants, schema, data or app identity were changed for the UI.
+The original Node.js app remained at `ver_20261119_cc3b696c61b2`.
+
+The configured repository/branch and `rootDirectory: dab-poc` were retained
+after the local upload. At this check, `autoDeploy` was false for both apps;
+nevertheless, treat pushes as deployment-capable and inspect serving-version
+changes rather than assuming a push cannot affect Azure.

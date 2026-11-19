@@ -414,7 +414,10 @@ The repository-root application still uses Express and `mssql`.
 A separate [read-only DAB proof of concept](dab-poc/README.md) under `dab-poc`
 packages Data API builder 2.1.5 as the single .NET 10 HTTP backend of another
 Builder app, using existing product/category tables and a separate SELECT-only
-identity. It does not replace the original app or migrate its frontend.
+identity. The same DAB app also serves a separate React catalog UI adapted to
+DAB's product/category APIs; it does not replace the original dashboard,
+checkout or order/review behavior. The exact deployed Node.js baseline is
+preserved on `nodejs-azure-sql-serverless`.
 
 DAB does not replace SQL migrations or automatically preserve the order/review
 business rules. This experiment uses generic .NET hosting, not a turnkey DAB

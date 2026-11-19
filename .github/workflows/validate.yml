@@ -19,9 +19,11 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             client/package-lock.json
+            dab-poc/ui/package-lock.json
       - run: npm ci
       - run: npm test
       - run: npm run build
+      - run: npm ci --prefix dab-poc/ui && npm run build --prefix dab-poc/ui
       - run: DESTINATION_DIR="$RUNNER_TEMP/shopstream-artifact" npm run package
       - run: az bicep build --file infra/main.bicep --stdout > /dev/null
       - run: |
