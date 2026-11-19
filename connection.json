@@ -1,0 +1,13 @@
+{
+  "name": "database",
+  "type": "azureSql",
+  "resourceId": "/subscriptions/<subscription-id>/resourceGroups/<database-group>/providers/Microsoft.Sql/servers/<server>/databases/shopstream",
+  "managedIdentity": { "type": "SystemAssigned" },
+  "settings": [
+    {
+      "field": "connectionString",
+      "value": "Server=tcp:<server>.database.windows.net,1433;Database=shopstream;Encrypt=True;TrustServerCertificate=False;Authentication=Active Directory Managed Identity;",
+      "environmentVariable": "SQL_CONNECTION_STRING"
+    }
+  ]
+}
