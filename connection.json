@@ -1,7 +1,7 @@
 {
   "name": "database",
   "type": "azureSql",
-  "resourceId": "/subscriptions/<subscription-id>/resourceGroups/<database-group>/providers/Microsoft.Sql/servers/<server>/databases/shopstream",
+  "resourceId": "/subscriptions/<subscription-id>/resourceGroups/<database-group>/providers/Microsoft.Sql/servers/<server>",
   "managedIdentity": { "type": "SystemAssigned" },
   "settings": [
     {

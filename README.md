@@ -217,7 +217,8 @@ template, mapping `connectionString` to `SQL_CONNECTION_STRING`. The app uses
 the driver's native parser for routing only and enforces its own Entra/TLS
 configuration. Use that setting **instead of** the three SQL routing variables,
 not alongside them. The template selects a system-assigned identity and uses
-the database's full ARM resource ID. Named-connection availability depends on
+the logical SQL server's full ARM resource ID. The database is selected in the
+routing string. Named-connection availability depends on
 the deployed Builder preview catalog; see [configuration steps](docs/connection-automation.md).
 Saving a connection does not grant SQL access or test persistence.
 

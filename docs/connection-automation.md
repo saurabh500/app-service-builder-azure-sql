@@ -39,6 +39,8 @@ the passwordless SQL routing string as `SQL_CONNECTION_STRING`.
 Copy `connection.json` into an ignored private `.local` directory and replace
 the subscription, group, server and database placeholders. It is an ARM
 **connection object**, not an entire app resource or an arbitrary CLI flag.
+The destination `resourceId` identifies the logical SQL server, not its child
+database; the database name belongs in `connectionString`.
 The string includes only server/database and safe TLS/authentication metadata.
 The Node app parses routing with `mssql.ConnectionPool.parseConnectionString`
 and configures Entra authentication independently; it rejects embedded
@@ -59,6 +61,11 @@ nor a saved diagram node creates a contained SQL user, grants data permissions,
 opens a firewall, tests SQL access or proves Serverless pause/resume behavior.
 If the preview profile is unavailable, use routing variables; do not select
 another database profile.
+
+Builder CLI 0.0.1's typed Azure SQL command can fail reading the logical server
+because it requests SQL API version `2022-11-01`. If that returns HTTP 400, use
+the documented ARM connection write with the server resource ID; do not broaden
+permissions or change the destination to work around it.
 
 ## Verify the deployed version
 
