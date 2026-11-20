@@ -24,4 +24,17 @@ builder manifest validate --json
 
 Node.js is used for the frontend build and database administration, not as the API server. The original Express marketplace is preserved on [`nodejs-azure-sql-serverless`](https://github.com/saurabh500/app-service-builder-postgresql/tree/nodejs-azure-sql-serverless). This branch contains only the DAB app and its supporting files.
 
+## Set up with GitHub Copilot
+
+Ask Copilot “Help me set up this ShopStream app on Azure” to use the repository's [`setup-shopstream` skill](.github/skills/setup-shopstream/SKILL.md). It guides database setup, managed identity, app settings, and deployment.
+
+For general Azure SQL help, we recommend the optional [Microsoft SQL marketplace](https://github.com/microsoft/microsoft-sql). In Copilot CLI, opt in with:
+
+```shell
+copilot plugin marketplace add microsoft/microsoft-sql
+copilot plugin install microsoft-sql@microsoft-sql
+```
+
+In VS Code, follow the marketplace's [VS Code instructions](https://github.com/microsoft/microsoft-sql#github-copilot-in-visual-studio-code) for `microsoft-sql-vscode`. The marketplace plugin is optional and separate from the MSSQL extension recommendation.
+
 Based on the MIT-licensed [ShopStream sample](https://github.com/AzureAppService/app-service-builder-postgresql). See [LICENSE.md](LICENSE.md).
