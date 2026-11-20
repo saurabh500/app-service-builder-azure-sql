@@ -68,8 +68,6 @@ check startup, ingress authentication, actual SQL reads and unauthorized write d
   Builder's default compute probe uses `/`, DAB's basic service-info endpoint,
   without a database query. The public `/api` reachability probe can return 404;
   default reachability accepts 100-499, not just 200. It is not a SQL health check.
-  Startup and actual reads still access SQL and can resume Serverless compute.
-  Pool minimum zero does not prove that the database will auto-pause.
 
 The native hosting-startup filter requires `X-Inventory-Command: 1` for unsafe
 HTTP methods. Native DAB accepts JSON in a `text/plain` body, so requiring JSON
@@ -84,17 +82,16 @@ this sample reuses the already approved networking for the existing database.
 
 ## Database prerequisites
 
-Use an existing ShopStream Azure SQL database with populated `dbo.products` and
-`dbo.categories`. For a **new, empty** DEV/TEST database, follow the
-[pinned Node branch's Serverless provisioning and catalog bootstrap instructions](https://github.com/saurabh500/app-service-builder-postgresql/blob/fa3aa915c6cabffc1d594675110a77f5f04f62e2/README.md#1-provision-the-dedicated-serverless-database-optional-billable).
-This branch's [`infra/main.bicep`](../infra/main.bicep) provides the same Entra-only
-Serverless database template. Run only the catalog bootstrap steps from a
-separate checkout of the pinned revision; do not grant its runtime permissions
-or deploy its Express app. Skip bootstrap for an existing populated catalog.
+Use Azure SQL Database with provisioned or serverless compute. If you already
+have a populated ShopStream catalog (`dbo.products` and `dbo.categories`), skip
+catalog bootstrap. Otherwise, start with a **new, empty** DEV/TEST database and
+follow the [pinned catalog bootstrap instructions](https://github.com/saurabh500/app-service-builder-postgresql/blob/fa3aa915c6cabffc1d594675110a77f5f04f62e2/README.md#2-bootstrap-schema-and-seed-as-an-administrator)
+from a separate checkout. Do not grant the Node app's runtime permissions or
+deploy its Express app.
 
-The template defaults to 0.5–2 vCores and 60-minute auto-pause. Open connections
-can prevent pause, and the first SQL operation after pause can be slow or fail.
-Retry reads after resume; do not automatically replay inventory writes.
+[`infra/main.bicep`](../infra/main.bicep) is an optional provisioning example.
+It creates an Entra-only serverless database with 0.5–2 vCores and 60-minute
+auto-pause. It is not required for provisioned compute or an existing database.
 
 ## Inventory schema, RLS and administrator setup
 
@@ -247,11 +244,11 @@ the adapter accounts for DAB omitting the offset on SQL `DATETIME2` values.
 Balance refresh replaces the snapshot; displaying more rows does not accumulate
 another database snapshot.
 
-SQL Serverless resume can exceed an HTTP timeout. Min pool size zero permits
-idle connections to drain; neither that nor a reachability probe proves
-auto-pause. After a timed-out POST, reconcile the original request rather than
-issuing a new ID. This sample adds no write-retry framework and does not claim
-that auto-pause/resume or long-duration identity renewal was exercised.
+If you choose serverless with auto-pause, startup and SQL reads can wake the
+database, and resume may exceed an HTTP timeout. Min pool size zero lets idle
+connections drain but does not guarantee auto-pause. On either compute option,
+reconcile the original request after a timed-out POST rather than issuing a new
+ID. The sample does not automatically retry writes.
 
 The UI reads active products in 100-row DAB pages with `$filter`, `$select` and
 `$orderby`, follows every relative `nextLink`, and loads categories separately.
