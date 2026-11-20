@@ -1,7 +1,7 @@
 version: 2
 updates:
   - package-ecosystem: npm
-    directories: ["/", "/client"]
+    directories: ["/", "/dab-poc/ui"]
     schedule:
       interval: weekly
   - package-ecosystem: github-actions

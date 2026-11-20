@@ -2,7 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { randomUUID } = require('node:crypto');
 const sql = require('mssql');
-const { createConfig } = require('../../server/db/config');
+const { createConfig } = require('../../db/inventory/config');
 const { setClaims } = require('../../db/inventory/setup');
 
 test('real inventory RLS, atomic commands, durable idempotency and concurrent last-item reservation',

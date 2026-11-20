@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { createConfig } = require('../server/db/config');
+const { createConfig } = require('../db/inventory/config');
 
 const env = { SQL_SERVER: 'sample.database.windows.net', SQL_DATABASE: 'shopstream' };
 

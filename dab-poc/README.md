@@ -1,7 +1,6 @@
 # ShopStream: DAB inventory and fulfillment control center
 
-This is a separate App Service Builder application root, not a replacement for
-the repository-root Express/React app. It uses Data API builder **2.1.5** on
+This is the App Service Builder source root for this branch. It uses Data API builder **2.1.5** on
 **.NET 10** against existing `dbo.products` and `dbo.categories` tables, with
 an additional, independently migrated `inventory` schema.
 
@@ -42,7 +41,7 @@ at detection, before DAB started. The packaging project supplies the framework
 declaration and owns the real packaging operation; it is not another API server.
 See [Builder's custom-build contract](https://builder.appservice.azure.com/docs/guides/builder-yaml/#override-the-build-correctly).
 Neither comparison nor local manifest validation proves hosted readiness:
-check startup, ingress authentication, actual SQL reads and write denial.
+check startup, ingress authentication, actual SQL reads and unauthorized write denial.
 
 ## Required configuration and security
 
@@ -83,15 +82,33 @@ another HTTP server. Keep it with the protected ingress and closed CORS policy.
 No customer/order/review data is exposed. SQL network access is still required;
 this sample reuses the already approved networking for the existing database.
 
+## Database prerequisites
+
+Use an existing ShopStream Azure SQL database with populated `dbo.products` and
+`dbo.categories`. For a **new, empty** DEV/TEST database, follow the
+[pinned Node branch's Serverless provisioning and catalog bootstrap instructions](https://github.com/saurabh500/app-service-builder-postgresql/blob/fa3aa915c6cabffc1d594675110a77f5f04f62e2/README.md#1-provision-the-dedicated-serverless-database-optional-billable).
+This branch's [`infra/main.bicep`](../infra/main.bicep) provides the same Entra-only
+Serverless database template. Run only the catalog bootstrap steps from a
+separate checkout of the pinned revision; do not grant its runtime permissions
+or deploy its Express app. Skip bootstrap for an existing populated catalog.
+
+The template defaults to 0.5–2 vCores and 60-minute auto-pause. Open connections
+can prevent pause, and the first SQL operation after pause can be slow or fail.
+Retry reads after resume; do not automatically replay inventory writes.
+
 ## Inventory schema, RLS and administrator setup
 
 The original `dbo` catalog stays unchanged. `db/inventory` adds warehouses,
 SQL-owned memberships, balances, reservations, durable request receipts and
-movements. The first migration copies the active catalog's stock into two
+movements. The demo snapshot migration copies the active catalog's stock into two
 independent demo warehouses. It is a one-time snapshot, not synchronization with
 the Node.js application.
 
-Use an authorized local Entra SQL administrator, never the app identity:
+From the repository root, run `npm ci`. Use an authorized local Entra SQL
+administrator, never the app identity. Use approved SQL network access and sign
+in with `az login --tenant <tenant-id>`. Set the routing values in the environment
+as shown below, or copy [`.env.example`](../.env.example) to `.env` and add
+`--env-file=.env` before the script path in each `node` command.
 
 ```powershell
 $env:SQL_SERVER='<existing-server>.database.windows.net'
@@ -109,14 +126,26 @@ node db\inventory\setup.js grant-read
 node db\inventory\setup.js grant-write
 ```
 
-The separate external SQL user must already exist and match that client ID.
+Before running `grant-read`, provision the external SQL user and grant catalog
+reads as a SQL administrator in the target database. For example, use the DAB
+system-assigned identity's client ID (not its object ID) in place of the GUID:
+
+```sql
+DECLARE @clientId uniqueidentifier = '<DAB-system-identity-client-guid>';
+DECLARE @sid varchar(34) = CONVERT(varchar(34), CONVERT(binary(16), @clientId), 1);
+EXEC (N'CREATE USER [shopstream_dab_reader] WITH SID = ' + @sid + N', TYPE = E;');
+GRANT SELECT ON OBJECT::dbo.products TO [shopstream_dab_reader];
+GRANT SELECT ON OBJECT::dbo.categories TO [shopstream_dab_reader];
+```
+
+Skip `CREATE USER` if the exact external mapping already exists.
 On a fresh target, omit the `InventoryCommand` entity from the first deployment
 while proving caller identity with read-only views. Restore it after `grant-write`:
 the complete configuration needs procedure metadata visibility and EXECUTE.
 The runner refuses mismatched principals, database roles, schema ownership
 and permissions beyond the exact catalog/view/procedure allowlist. Do not use
-the original `db/setup.js grant` command for this DAB identity: it grants the
-Node.js sample's unrelated write operations. `grant-read` is additive, not a way
+the Node branch's runtime grant command for this identity: it grants unrelated
+write operations. `grant-read` is additive, not a way
 to revoke an earlier EXECUTE grant. To disable commands, revoke EXECUTE on
 `inventory.execute_command` and remove its DAB entity.
 
@@ -280,9 +309,10 @@ The option is defined in DAB 2.1.5's
 From the repository root:
 
 ```powershell
+npm ci
 npm ci --prefix dab-poc\ui
 npm test
-npm run build --prefix dab-poc\ui
+npm run build
 builder manifest validate dab-poc --json
 dotnet run --project test\dab-host\DabHostTests.csproj --configuration Release
 ```
@@ -314,11 +344,12 @@ inventory procedure configuration.
 Never use an administrator account to test runtime write denial.
 
 The opt-in SQL test uses administrator-created, synthetic RLS fixtures, separate
-physical sessions and cleanup; it is not a runtime-identity permission test:
+physical sessions and cleanup; it is not a runtime-identity permission test.
+Run it only against a disposable inventory database, never production:
 
 ```powershell
 $env:INVENTORY_TEST_CONFIRM_DATABASE=$env:SQL_DATABASE
-node --test test\inventory\integration.test.js
+npm run test:integration
 ```
 
 It exercises missing/malformed identity, role and warehouse isolation, competing

@@ -2,8 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { createHash } = require('node:crypto');
 const sql = require('mssql');
-const { createConfig } = require('../../server/db/config');
-const { hasRuntimeMapping } = require('../setup');
+const { createConfig } = require('./config');
 
 const TENANT_CLAIM = 'http://schemas.microsoft.com/identity/claims/tenantid';
 const ACTOR_CLAIM = 'http://schemas.microsoft.com/identity/claims/objectidentifier';
@@ -105,7 +104,13 @@ async function grant(pool, writes, env = process.env) {
     SELECT name, type, authentication_type_desc, CONVERT(VARCHAR(36), CONVERT(UNIQUEIDENTIFIER, sid)) AS sid_id
     FROM sys.database_principals WHERE name = @name;
   `)).recordset;
-  if (!hasRuntimeMapping(existing, role, clientId, 'service')) throw new Error('Provision the exact DAB external principal before granting inventory access');
+  if (!Array.isArray(existing) || existing.length > 1) throw new Error('Unsupported Entra principal metadata');
+  const [mapped] = existing;
+  if (existing.length === 0) throw new Error('Provision the exact DAB external principal before granting inventory access');
+  if (mapped?.name !== role || mapped?.type !== 'E' || mapped?.authentication_type_desc !== 'EXTERNAL'
+      || typeof mapped.sid_id !== 'string' || mapped.sid_id.toLowerCase() !== clientId.toLowerCase()) {
+    throw new Error('Existing Entra mapping differs; refusing to replace it');
+  }
   const elevated = await pool.request().input('name', sql.NVarChar(128), role).query(`
     SELECT 1 AS elevated WHERE EXISTS (SELECT 1 FROM sys.database_role_members WHERE member_principal_id = DATABASE_PRINCIPAL_ID(@name))
       OR EXISTS (SELECT 1 FROM sys.schemas WHERE principal_id = DATABASE_PRINCIPAL_ID(@name))

@@ -15,33 +15,15 @@ or contact opencode@microsoft.com with additional questions or comments.
 
 ## Local checks and database changes
 
-Use Node.js 24. Before submitting changes, run `npm ci`, `npm test`, and
-`npm run build`. Unit/route tests are database-free; the build does not install
-or modify a database. CI also checks packaging and Bicep compilation, not a
-live Azure deployment.
+Use Node.js 24 and .NET 10. Run the [local checks](dab-poc/README.md#local-checks)
+before submitting changes. CI checks the UI build, DAB packaging, host behavior
+and database Bicep compilation. The official DAB validator and opt-in
+integration tests connect to SQL. Run write-enabled tests only against a
+confirmed disposable database, never the deployed demo or production.
 
-Follow [local setup](README.md#4-run-locally) for explicit `.env` loading,
-limited developer identity and temporary exact-IP SQL access. Plain npm
-scripts do not load `.env` themselves.
-
-Database integration tests are a separate, write-enabled opt-in against an
-explicitly confirmed dedicated seeded disposable database. Follow the
-[integration command and cleanup warnings](README.md#checks); the test leaves
-an order and stock change and must not target the deployed demo or production.
-Do not treat passing offline tests as proof of live SQL execution, concurrent
-stock behavior, token renewal or Serverless pause/resume.
-
-Read [the code walkthrough](README.md#how-to-read-the-code) and
-[schema ownership and upgrades](README.md#schema-ownership-and-upgrades) before
-changing SQL. Bootstrap installs version 1 only: editing `db/schema.sql` does
-not upgrade an existing database, and reset only replaces data. There is no
-migration runner. The [DAB proof of concept](dab-poc/README.md) is a separate
-application root; its read-only configuration and UI adapter tests run with `npm test`, while
-the official DAB validator also connects to SQL. Keep runtime permissions
-limited; schema upgrades require a separate explicit deployment process.
-Build its separate React frontend with `npm ci --prefix dab-poc\ui` followed by
-`npm run build --prefix dab-poc\ui`. Its same-origin live UI/API checks require
-the DAB Builder app, not the original Express server.
+Read the [inventory setup guide](dab-poc/README.md#inventory-schema-rls-and-administrator-setup)
+before changing SQL. Do not modify an applied migration; add a new numbered one.
+Keep runtime permissions limited to the documented catalog, views and procedure.
 
 Never commit tokens, passwords, environment files, customer data, or
 resource-specific credentials.

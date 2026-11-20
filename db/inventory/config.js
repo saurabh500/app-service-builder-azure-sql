@@ -45,7 +45,7 @@ function createConfig(env = process.env) {
       trustServerCertificate: false,
       abortTransactionOnError: true,
       maxRetriesOnTransientErrors: 0,
-      appName: 'shopstream-azuresql',
+      appName: 'shopstream-inventory-admin',
       useUTC: true,
     },
   };

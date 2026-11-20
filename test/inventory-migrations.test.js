@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { migrations, identity, migrate } = require('../db/inventory/setup');
+const { migrations, identity, migrate, grant } = require('../db/inventory/setup');
 
 const env = {
   INVENTORY_TENANT_ID: '11111111-1111-4111-8111-111111111111',
@@ -67,4 +67,36 @@ test('missing, zero or malformed initial identities fail before SQL is reached',
     await assert.rejects(migrate({ transaction() { throw new Error('SQL must not be reached'); } },
       { ...env, INVENTORY_MANAGER_OBJECT_ID: value }), /nonzero/);
   }
+});
+
+test('inventory grants require the exact external identity and never grant table writes', async () => {
+  const role = 'shopstream_dab_reader';
+  const clientId = env.INVENTORY_MANAGER_OBJECT_ID;
+  const principal = { name: role, sid_id: clientId.toUpperCase(), type: 'E', authentication_type_desc: 'EXTERNAL' };
+  const grantEnv = { RUNTIME_ROLE: role, RUNTIME_CLIENT_ID: clientId };
+  const grants = [];
+  const pool = (rows, elevated = false) => ({
+    request() {
+      return {
+        input() { return this; },
+        async query(text) {
+          if (text.includes('FROM sys.database_principals')) return { recordset: rows };
+          if (text.includes('AS elevated')) return { recordset: elevated ? [{ elevated: 1 }] : [] };
+          grants.push(text);
+        },
+      };
+    },
+  });
+  await assert.rejects(grant(pool([]), true, grantEnv), /Provision the exact/);
+  for (const change of [{ sid_id: env.INVENTORY_TENANT_ID }, { type: 'X' }, { authentication_type_desc: 'INSTANCE' }]) {
+    await assert.rejects(grant(pool([{ ...principal, ...change }]), true, grantEnv), /mapping differs/);
+  }
+  await assert.rejects(grant(pool([principal], true), true, grantEnv), /broader permissions/);
+  assert.deepEqual(grants, []);
+  await grant(pool([principal]), false, grantEnv);
+  assert.equal(grants.length, 6);
+  assert.ok(grants.every(text => text.startsWith('GRANT SELECT ON OBJECT::inventory.')));
+  const reads = grants.splice(0);
+  await grant(pool([principal]), true, grantEnv);
+  assert.deepEqual(grants, [...reads, `GRANT EXECUTE ON OBJECT::inventory.execute_command TO [${role}]`]);
 });
