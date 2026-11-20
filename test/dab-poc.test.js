@@ -23,8 +23,5 @@ test('DAB exposes authenticated reads plus exactly one POST-only inventory proce
   assert.equal(config.runtime.health.enabled, false);
   assert.deepEqual(config.runtime.host.cors, { origins: [], 'allow-credentials': false });
   assert.equal(config['data-source']['connection-string'], "@env('SQL_CONNECTION_STRING')");
-  assert.deepEqual(config.runtime.telemetry['application-insights'], {
-    'connection-string': "@env('APPLICATIONINSIGHTS_CONNECTION_STRING')",
-    enabled: true
-  });
+  assert.equal(config.runtime.telemetry, undefined);
 });

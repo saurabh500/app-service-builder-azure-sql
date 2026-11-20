@@ -25,11 +25,8 @@ jobs:
       - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
         with:
           dotnet-version: '10.0.x'
-      - name: Package DAB and check SAMI telemetry configuration
+      - name: Package DAB
         run: |
           dotnet msbuild dab-poc/DabBackend.csproj -target:PackageDab -property:DabOutput="$RUNNER_TEMP/dab-artifact"
-          DAB_RUNTIME="$(dirname "$(find "$RUNNER_TEMP/dab-artifact/.store" -name Microsoft.DataApiBuilder.deps.json)")"
-          dotnet build test/dab-telemetry/DabTelemetryTests.csproj --configuration Release --output "$DAB_RUNTIME" -property:DabToolDirectory="$DAB_RUNTIME"
-          dotnet exec --depsfile "$DAB_RUNTIME/Microsoft.DataApiBuilder.deps.json" --runtimeconfig "$DAB_RUNTIME/Microsoft.DataApiBuilder.runtimeconfig.json" "$DAB_RUNTIME/DabTelemetryTests.dll"
       - run: dotnet run --project test/dab-host/DabHostTests.csproj --configuration Release
       - run: az bicep build --file infra/main.bicep --stdout > /dev/null

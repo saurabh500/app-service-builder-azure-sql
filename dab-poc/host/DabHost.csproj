@@ -7,11 +7,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.DataApiBuilder" HintPath="$(DabToolDirectory)/Microsoft.DataApiBuilder.dll" Private="false" />
-    <Reference Include="Microsoft.ApplicationInsights" HintPath="$(DabToolDirectory)/Microsoft.ApplicationInsights.dll" Private="false" />
-    <Reference Include="Microsoft.AI.ServerTelemetryChannel" HintPath="$(DabToolDirectory)/Microsoft.AI.ServerTelemetryChannel.dll" Private="false" />
-    <Reference Include="Azure.DataApiBuilder.Service" HintPath="$(DabToolDirectory)/Azure.DataApiBuilder.Service.dll" Private="false" />
-    <Reference Include="Azure.Identity" HintPath="$(DabToolDirectory)/Azure.Identity.dll" Private="false" />
-    <Reference Include="Azure.Core" HintPath="$(DabToolDirectory)/Azure.Core.dll" Private="false" />
   </ItemGroup>
   <Target Name="CheckDabTool" BeforeTargets="ResolveReferences">
     <Error Condition="!Exists('$(DabToolDirectory)/Microsoft.DataApiBuilder.dll')" Text="Build through DabBackend.csproj to resolve the pinned official DAB assemblies." />

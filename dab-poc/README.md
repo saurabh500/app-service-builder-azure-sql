@@ -16,8 +16,8 @@ Builder's Oryx detection requires a .NET project even with a custom build.
 `DabBackend.csproj` is the actual MSBuild packaging entry point: its `PackageDab`
 target installs the pinned official `Microsoft.DataApiBuilder` .NET tool into
 the deployment output, compiles the small `host` entry point against those exact
-binaries, and copies the config and launch script. The entry point configures
-SAMI telemetry and calls the official DAB CLI in-process. It does not implement
+binaries, and copies the config and launch script. The entry point registers the
+inventory request-header check and calls the official DAB CLI in-process. It does not implement
 another HTTP server. There is no container sidecar. Select `dab-poc` as the
 Builder app's GitHub source `--root-directory`.
 
@@ -182,36 +182,6 @@ History is append-only for the runtime identity, not SQL Ledger or tamper-proof
 against a SQL administrator. RLS depends on protected ingress and the trusted
 runtime setting session context: it does not protect against a compromised app
 identity with arbitrary SQL execution, or an administrator changing policies.
-
-## Application Insights with the app's system identity
-
-The existing named connection exports `APPLICATIONINSIGHTS_CONNECTION_STRING`;
-DAB reads that exact variable through `@env(...)`. Do not put its value in Git
-or create a second conflicting variable. The app's system-assigned identity
-needs **Monitoring Metrics Publisher** scoped to the existing Application
-Insights component, not to the subscription. No user-assigned client ID is set.
-Do not disable local authentication on a shared telemetry resource without
-checking its other senders.
-
-Pinned DAB 2.1.5 does not configure token authentication for Application Insights
-itself. Its request telemetry and separately created logger factories also use
-different SDK configurations. The `host` entry point owns one SDK channel,
-calls `SetAzureTokenCredential(new ManagedIdentityCredential())`, and supplies
-that channel to both native DAB paths. `SamiTelemetryChannel` prevents the
-key-only logger defaults from clearing the owner's credential or replacing
-its AAD endpoint. Transient logger disposal does not close the app-owned
-channel; the entry point allows up to ten seconds for its final flush.
-The host also configures the main SDK's identity through an ASP.NET hosting
-startup extension. This is sample integration code using DAB's public
-`CustomTelemetryChannel` hook, not a built-in DAB managed-identity setting.
-Recheck these integration points when upgrading DAB.
-
-The focused .NET check creates two logger configurations against the pinned
-SDK and checks credential/endpoint retention, rejects a different ingestion
-origin, and reproduces credential clearing without the boundary. It neither
-requests a managed-identity token nor sends telemetry. Passing it is not proof
-of live ingestion; that additionally requires a successful hosted deployment
-and correlated requests in the existing Application Insights resource.
 
 ## API contract
 
@@ -432,10 +402,6 @@ session without return/reset made its negative control fail as expected.
 The host check passed both rejected and healthy calls twice. Native UTC timestamp
 formatting was calibrated against the incorrect local-time parser in a non-UTC
 timezone.
-
-SAMI telemetry was separately confirmed by a correlated successful request in
-the existing Application Insights component; no new component or broad role
-grant was created. Its connection string remains outside source control.
 
 Not exercised: two real Entra users traversing the hosted pool, forced-broken SQL
 locking, observed auto-pause/resume, sustained load, long-duration identity renewal

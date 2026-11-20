@@ -37,16 +37,6 @@
     },
     "health": {
       "enabled": false
-    },
-    "telemetry": {
-      "application-insights": {
-        "connection-string": "@env('APPLICATIONINSIGHTS_CONNECTION_STRING')",
-        "enabled": true
-      },
-      "open-telemetry": {
-        "endpoint": "",
-        "enabled": false
-      }
     }
   },
   "entities": {

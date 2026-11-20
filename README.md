@@ -2,7 +2,7 @@
 
 A Data API builder (DAB) sample for **Azure SQL Database Serverless**. App Service Builder serves the React UI at `/` and DAB at `/api`. Microsoft Entra sign-in and SQL row-level security scope inventory to each caller's warehouses. SQL handles receive, adjust, reserve and release commands transactionally, with durable receipts and movement history.
 
-The [DAB app and setup guide](dab-poc/README.md) covers the protected ingress, managed identities, database setup, API, Application Insights and deployment. Use **`dab-poc`** as the Builder source directory.
+The [DAB app and setup guide](dab-poc/README.md) covers the protected ingress, managed identity for Azure SQL, database setup, API and deployment. Use **`dab-poc`** as the Builder source directory.
 
 | Path | Purpose |
 | --- | --- |
