@@ -15,13 +15,13 @@ or contact opencode@microsoft.com with additional questions or comments.
 
 ## Local checks and database changes
 
-Use Node.js 24 and .NET 10. Run the [local checks](dab-poc/README.md#local-checks)
+Use Node.js 24 and .NET 10. Run the [local checks](dab/README.md#local-checks)
 before submitting changes. CI checks the UI build, DAB packaging, host behavior
 and database Bicep compilation. The official DAB validator and opt-in
 integration tests connect to SQL. Run write-enabled tests only against a
 confirmed disposable database, never the deployed demo or production.
 
-Read the [inventory setup guide](dab-poc/README.md#inventory-schema-rls-and-administrator-setup)
+Read the [inventory setup guide](dab/README.md#inventory-schema-rls-and-administrator-setup)
 before changing SQL. Do not modify an applied migration; add a new numbered one.
 Keep runtime permissions limited to the documented catalog, views and procedure.
 

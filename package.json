@@ -4,7 +4,7 @@
   "description": "Database administration and tests for ShopStream DAB",
   "private": true,
   "scripts": {
-    "build": "npm run build --prefix dab-poc/ui",
+    "build": "npm run build --prefix dab/ui",
     "test": "node --test test/*.test.js",
     "test:integration": "node --test test/inventory/integration.test.js"
   },

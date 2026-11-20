@@ -1,7 +1,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
-const catalog = import('../dab-poc/ui/src/catalog.mjs');
+const catalog = import('../dab/ui/src/catalog.mjs');
 const product = { id: 1, name: 'Running Shoes', description: 'Everyday comfort', sku: 'RUN-1', category_id: 2, price_cents: 1500, rating_avg: 4.5 };
 const category = { id: 2, name: 'Footwear' };
 const ok = value => ({ ok: true, status: 200, json: async () => value });

@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const config = require('../dab-poc/dab-config.json');
+const config = require('../dab/dab-config.json');
 
 test('DAB exposes authenticated reads plus exactly one POST-only inventory procedure, never generic inventory CRUD', () => {
   const exposed = Object.values(config.entities);

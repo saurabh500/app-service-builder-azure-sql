@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const adapter = import('../dab-poc/ui/src/inventory.mjs');
+const adapter = import('../dab/ui/src/inventory.mjs');
 const caller = { tenant_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', actor_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' };
 const ok = value => ({ ok: true, status: 200, json: async () => ({ value }) });
 const receipt = command => ({ request_id: command.request_id, warehouse_id: 1, outcome: 'applied', code: 'applied', on_hand: 10, reserved: 2 });

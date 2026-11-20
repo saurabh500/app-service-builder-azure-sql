@@ -7,6 +7,6 @@
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <Compile Include="../../dab-poc/host/InventoryCommandStartupFilter.cs" Link="InventoryCommandStartupFilter.cs" />
+    <Compile Include="../../dab/host/InventoryCommandStartupFilter.cs" Link="InventoryCommandStartupFilter.cs" />
   </ItemGroup>
 </Project>
