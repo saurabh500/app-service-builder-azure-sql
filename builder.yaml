@@ -1,13 +1,14 @@
 components:
   - name: catalog
     role: static
-    rootDirectory: ui
+    rootDirectory: dab-poc/ui
     platform: nodejs
     platformVersion: "24"
     output: dist
     path: /
   - name: api
     role: web
+    rootDirectory: dab-poc
     path: /api
     platform: dotnet
     platformVersion: "10"
