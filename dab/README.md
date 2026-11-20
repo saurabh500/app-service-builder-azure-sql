@@ -119,9 +119,6 @@ node db\inventory\setup.js migrate
 
 $env:RUNTIME_ROLE='shopstream_dab_reader'
 $env:RUNTIME_CLIENT_ID='<DAB-system-identity-client-guid>'
-node db\inventory\setup.js grant-read
-# Verify native caller identity and forged-header rejection through protected ingress first.
-node db\inventory\setup.js grant-write
 ```
 
 Before running `grant-read`, provision the external SQL user and grant catalog
@@ -136,10 +133,33 @@ GRANT SELECT ON OBJECT::dbo.products TO [shopstream_dab_reader];
 GRANT SELECT ON OBJECT::dbo.categories TO [shopstream_dab_reader];
 ```
 
-Skip `CREATE USER` if the exact external mapping already exists.
-On a fresh target, omit the `InventoryCommand` entity from the first deployment
-while proving caller identity with read-only views. Restore it after `grant-write`:
-the complete configuration needs procedure metadata visibility and EXECUTE.
+Skip `CREATE USER` if the exact external mapping already exists. Use a distinct
+user name per app identity if multiple apps share the database; use that same
+name in `RUNTIME_ROLE` and the SQL statements.
+
+### Enable writes on a fresh app
+
+You can reuse an existing Azure SQL server and database that already contain
+the sample schema and catalog. A new Builder app does not require a new SQL
+server. Use a separate SQL user for the new app's identity.
+
+1. Configure the app's system-assigned identity, Entra-only ingress, and runtime
+   settings above. After creating the SQL user and granting catalog reads, run
+   `node db\inventory\setup.js grant-read` to grant access to the inventory views.
+2. Deploy a temporary copy of `dab/dab-config.json` with the `InventoryCommand`
+   entity removed. Don't deploy the full Git configuration yet. Verify that
+   anonymous requests are denied and that a signed-in user can read
+   `/api/products`, `/api/access`, and only their assigned `/api/warehouses`.
+3. As the SQL administrator, run `node db\inventory\setup.js grant-write` with
+   the same `RUNTIME_ROLE` and `RUNTIME_CLIENT_ID`. This grants `EXECUTE` on
+   **only** `inventory.execute_command`; the app does not need `db_datawriter`,
+   `db_owner`, or direct table write permissions.
+4. Restore `InventoryCommand` by deploying the original configuration **after**
+   the grant. DAB loads procedure metadata at startup; deploying the full
+   configuration before the grant can fail startup and surface as a Builder
+   health-check timeout. Verify a signed-in inventory command and its receipt
+   on a disposable test target before using writes on shared inventory.
+
 The runner refuses mismatched principals, database roles, schema ownership
 and permissions beyond the exact catalog/view/procedure allowlist. Do not use
 the Node branch's runtime grant command for this identity: it grants unrelated
